@@ -1,0 +1,23 @@
+# Локальная БД для проекта. Порт 55432, чтобы не конфликтовать с другими postgres на машине.
+services:
+  db:
+    image: postgres:16
+    container_name: arqa_bi_pg
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-arqa}
+      POSTGRES_USER: ${POSTGRES_USER:-arqa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arqa_local_dev}
+      # Детерминированная сортировка и формат дат — чтобы результат не зависел от локали хоста
+      LANG: C
+      TZ: UTC
+    command: >
+      postgres -c lc_messages=C -c timezone=UTC -c datestyle='ISO, DMY'
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arqa} -d ${POSTGRES_DB:-arqa}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    # Данные намеренно НЕ в volume: БД полностью пересоздаётся из CSV одной командой,
+    # состояние между запусками не нужно и мешало бы проверке идемпотентности.
