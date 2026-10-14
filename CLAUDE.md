@@ -41,19 +41,41 @@
 ## Структура
 ```
 data/            portfolio.csv, fx.csv (закоммичены)
-sql/raw/         DDL схемы raw + загрузка
+sql/raw/         DDL схемы raw (create if not exists!) + идемпотентная загрузка
 sql/reporting/   вьюхи reporting.v_*
-checks/          SQL-ассерты + независимый пересчёт на Python
+checks/          7 SQL-ассертов + independent_recompute.py (пересчёт из CSV вне SQL)
 semantic/        portfolio.yml — семантическая модель
-dashboard/       index.html, specs/*.json, data/*.json (выгрузка из вьюх)
+dashboard/       index.html, specs/*.json (Vega-Lite v5), data/*.json (выгрузка из вьюх)
 docs/            data_quality.md, verification.md, ai_log.md, dashboard.png
-scripts/         export_dashboard_data.sh, screenshot
+scripts/         profile_data, export_dashboard_data, validate_semantic, render_readme,
+                 screenshot, check_idempotency, spot_check, python_env
+.github/         workflow CI: пайплайн на postgres:16 + сверка выгрузки с репозиторием
 ```
+
+## Грабли, на которые уже наступали (не повторять)
+- **Не `DROP TABLE` в `sql/raw/00_schema.sql`** — на таблицах висят вьюхи reporting,
+  второй прогон падает. Только `create table if not exists` + `TRUNCATE` при загрузке.
+- **В спеках Vega-Lite нет временного формата на строковом поле**: дата приходит из выгрузки
+  готовой подписью `report_date_label` (`to_char(report_date,'DD.MM.YYYY')`).
+  `width: "container"` не работает в фасетных спеках — ширина задаётся явно.
+- **`*_chg_pp` уже в процентных пунктах** — не делить на 100 при форматировании.
+- **Профилировать не только срез, но и переходы между срезами** (так нашлась аномалия A7:
+  23 кредита вернулись из списания).
+- **Качественные выводы тоже выводить запросом**: формулировка «улучшило/ухудшило»
+  один раз уже оказалась с обратным знаком.
 
 ## Как запустить
 ```bash
-make all     # поднять БД → создать схемы → загрузить CSV → вьюхи → проверки → выгрузка JSON
-make down    # остановить БД
+make all         # БД → схемы → CSV → вьюхи → проверки → семантика → выгрузка JSON → README
+make profile     # профилирование сырых данных
+make checks      # только проверки
+make metrics     # показать v_portfolio_metrics
+make serve       # дашборд на localhost:8000
+make screenshot  # пересобрать docs/dashboard.png (падает при ошибках в консоли)
+make down        # остановить БД
+
+./scripts/check_idempotency.sh   # двойной прогон + побайтовое сравнение выгрузки
+./scripts/spot_check.sh          # сквозная сверка отдельных кредитов
 ```
 `make all` идемпотентен и запускается дважды без ошибок.
 

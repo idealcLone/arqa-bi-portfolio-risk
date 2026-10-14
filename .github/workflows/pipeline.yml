@@ -1,0 +1,94 @@
+# CI: поднимает postgres:16, прогоняет весь пайплайн и проверяет,
+# что выгрузка дашборда в репозитории совпадает с пересчитанной из БД.
+# Если кто-то поправил вьюху и забыл перегенерировать JSON — сборка падает.
+name: pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_DB: arqa
+          POSTGRES_USER: arqa
+          POSTGRES_PASSWORD: arqa_local_dev
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U arqa -d arqa"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "55432"
+      POSTGRES_DB: arqa
+      POSTGRES_USER: arqa
+      POSTGRES_PASSWORD: arqa_local_dev
+      PGPASSWORD: arqa_local_dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Установить psql и pyyaml
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          python3 -m pip install --quiet pyyaml
+
+      - name: Профилирование исходных данных
+        run: python3 scripts/profile_data.py
+
+      - name: Схема raw и загрузка CSV
+        run: |
+          psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f sql/raw/00_schema.sql
+          psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f sql/raw/01_load.sql
+
+      - name: Вьюхи reporting
+        run: |
+          for f in sql/reporting/*.sql; do
+            echo "==> $f"
+            psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f "$f"
+          done
+
+      - name: Проверки (SQL-ассерты)
+        run: |
+          for f in checks/*.sql; do
+            echo "==> $f"
+            psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f "$f"
+          done
+
+      - name: Независимый пересчёт из CSV
+        run: python3 checks/independent_recompute.py
+
+      - name: Валидация семантической модели
+        run: python3 scripts/validate_semantic.py
+
+      - name: Выгрузка дашборда и сверка с закоммиченной
+        run: |
+          ./scripts/export_dashboard_data.sh
+          python3 scripts/render_readme.py
+          if ! git diff --exit-code -- dashboard/data README.md; then
+            echo "::error::Выгрузка дашборда или цифры в README разошлись с содержимым репозитория."
+            echo "Запусти 'make all' локально и закоммить результат."
+            exit 1
+          fi
+          echo "Выгрузка и README совпадают с репозиторием"
+
+      - name: Повторный прогон — проверка идемпотентности
+        run: |
+          psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f sql/raw/00_schema.sql
+          psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f sql/raw/01_load.sql
+          for f in sql/reporting/*.sql; do psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f "$f"; done
+          for f in checks/*.sql; do psql -v ON_ERROR_STOP=1 -q -h localhost -p 55432 -U arqa -d arqa -f "$f"; done
+          ./scripts/export_dashboard_data.sh
+          git diff --exit-code -- dashboard/data || (echo "::error::Повторный прогон изменил выгрузку" && exit 1)
+          echo "Повторный прогон не изменил ничего"
