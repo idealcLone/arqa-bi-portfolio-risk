@@ -12,6 +12,7 @@ on:
 jobs:
   build-and-verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     services:
       db:
@@ -74,8 +75,11 @@ jobs:
 
       - name: Выгрузка дашборда и сверка с закоммиченной
         run: |
-          ./scripts/export_dashboard_data.sh
-          python3 scripts/render_readme.py
+          set -x
+          # timeout на каждом шаге: зависание должно называть себя, а не висеть до таймаута job
+          timeout 120 ./scripts/export_dashboard_data.sh
+          timeout 120 python3 scripts/render_readme.py
+          set +x
           if ! git diff --exit-code -- dashboard/data README.md; then
             echo "::error::Выгрузка дашборда или цифры в README разошлись с содержимым репозитория."
             echo "Запусти 'make all' локально и закоммить результат."
