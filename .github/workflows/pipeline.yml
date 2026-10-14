@@ -73,6 +73,9 @@ jobs:
       - name: Валидация семантической модели
         run: python3 scripts/validate_semantic.py
 
+      - name: Сверка дашборда с исходными CSV (без БД в цепочке)
+        run: timeout 120 python3 checks/dashboard_vs_csv.py
+
       - name: Выгрузка дашборда и сверка с закоммиченной
         run: |
           # timeout на каждой команде: зависший шаг должен падать быстро и называть себя

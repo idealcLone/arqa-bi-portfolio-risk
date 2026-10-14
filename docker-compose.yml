@@ -2,7 +2,9 @@
 services:
   db:
     image: postgres:16
-    container_name: arqa_bi_pg
+    # container_name намеренно НЕ задан: имя контейнера выводится из имени каталога проекта,
+    # поэтому два клона репозитория (или проверка на чистом клоне рядом с рабочим)
+    # не конфликтуют за один контейнер. Порт при необходимости меняется в .env.
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-arqa}
       POSTGRES_USER: ${POSTGRES_USER:-arqa}

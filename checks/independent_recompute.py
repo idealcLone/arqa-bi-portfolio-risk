@@ -62,6 +62,12 @@ def read_portfolio():
 
 
 def compute():
+    """Считает все метрики из CSV. Возвращает (итоги, отрасли, программы, бакеты, группы).
+
+    Используется и независимой сверкой с SQL, и сверкой дашборда с CSV
+    (checks/dashboard_vs_csv.py) — так дашборд проверяется против источника напрямую,
+    без БД в качестве посредника.
+    """
     rates = read_fx()
     rows = read_portfolio()
 
@@ -70,6 +76,7 @@ def compute():
     groups = defaultdict(lambda: defaultdict(Decimal))
     sectors = defaultdict(lambda: defaultdict(Decimal))
     programs = defaultdict(lambda: defaultdict(Decimal))
+    buckets = defaultdict(lambda: defaultdict(Decimal))
 
     for row in rows:
         date = row["report_date"].strip()
@@ -110,13 +117,27 @@ def compute():
         counts[date] += 1
 
         groups[date][row["group_id"].strip()] += kzt
-        for store, key in ((sectors, row["sector"].strip()), (programs, row["program"].strip())):
+
+        # бакет просрочки: те же пороги, что и в определениях провизий
+        if dpd == 0:
+            bucket = "0"
+        elif dpd <= 30:
+            bucket = "1\u201330"
+        elif dpd <= 90:
+            bucket = "31\u201390"
+        else:
+            bucket = "90+"
+
+        for store, key in ((sectors, row["sector"].strip()),
+                           (programs, row["program"].strip()),
+                           (buckets, bucket)):
             d = store[(date, key)]
             d["portfolio"] += kzt
             d["par30"] += kzt if is_par30 else Decimal(0)
             d["par90"] += kzt if is_par90 else Decimal(0)
             d["npl"] += kzt if is_npl else Decimal(0)
             d["provisions"] += prov
+            d["loan_count"] += 1
 
     result = {}
     for date, t in totals.items():
@@ -134,9 +155,10 @@ def compute():
             "top10_exposure_kzt": sum((v for _, v in top), Decimal(0)),
             "top10_group_share": sum((v for _, v in top), Decimal(0)) / t["portfolio"],
             "top10_groups": [(g, v) for g, v in top],
+            "groups": dict(groups[date]),
             "written_off_count": int(t["written_off_count"]),
         }
-    return result, sectors, programs
+    return result, sectors, programs, buckets
 
 
 # ------------------------------------------------------------------- БД
@@ -171,7 +193,7 @@ def cmp_share(label, expected: Decimal, actual: Decimal):
 
 
 def main():
-    py, py_sectors, py_programs = compute()
+    py, py_sectors, py_programs, _py_buckets = compute()
 
     print("=" * 78)
     print("НЕЗАВИСИМЫЙ ПЕРЕСЧЁТ ИЗ CSV (python, stdlib) ПРОТИВ reporting.v_* (SQL)")

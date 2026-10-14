@@ -13,7 +13,10 @@ profile: ## профилирование сырых CSV (аномалии)
 checks: ## только проверки (БД должна быть поднята)
 	. ./scripts/load_env.sh; \
 	for f in checks/*.sql; do echo "==> $$f"; psql -v ON_ERROR_STOP=1 -q -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f $$f; done; \
-	. ./scripts/python_env.sh; "$$PY" checks/independent_recompute.py
+	. ./scripts/python_env.sh; "$$PY" checks/independent_recompute.py; "$$PY" checks/dashboard_vs_csv.py
+
+verify-prod: ## сверить ОПУБЛИКОВАННЫЙ дашборд с исходными CSV
+	. ./scripts/python_env.sh; "$$PY" checks/dashboard_vs_csv.py --url https://arqa-bi-portfolio-risk.vercel.app
 
 metrics: ## показать v_portfolio_metrics
 	. ./scripts/load_env.sh; \
@@ -28,4 +31,4 @@ screenshot: ## скриншот дашборда в docs/dashboard.png
 down: ## остановить и удалить БД
 	docker compose down -v
 
-.PHONY: help all profile checks metrics serve screenshot down
+.PHONY: help all profile checks verify-prod metrics serve screenshot down
