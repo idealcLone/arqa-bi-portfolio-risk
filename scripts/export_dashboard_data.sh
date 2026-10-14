@@ -6,9 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-[ -f .env ] || cp .env.example .env
-set -a; . ./.env; set +a
-export PGPASSWORD="$POSTGRES_PASSWORD"
+. ./scripts/load_env.sh
 PSQL=(psql -X -q -A -t -v ON_ERROR_STOP=1 -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB")
 
 mkdir -p dashboard/data

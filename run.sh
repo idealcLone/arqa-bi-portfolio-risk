@@ -4,9 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-[ -f .env ] || cp .env.example .env
-set -a; . ./.env; set +a
-export PGPASSWORD="$POSTGRES_PASSWORD"
+. ./scripts/load_env.sh        # .env, не затирая переменные окружения (важно для CI)
 . ./scripts/python_env.sh      # определяет $PY (python3 с pyyaml)
 PSQL=(psql -v ON_ERROR_STOP=1 -q -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB")
 

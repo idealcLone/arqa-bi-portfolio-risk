@@ -11,12 +11,12 @@ profile: ## профилирование сырых CSV (аномалии)
 	. ./scripts/python_env.sh; "$$PY" scripts/profile_data.py
 
 checks: ## только проверки (БД должна быть поднята)
-	set -a; . ./.env; set +a; export PGPASSWORD=$$POSTGRES_PASSWORD; \
+	. ./scripts/load_env.sh; \
 	for f in checks/*.sql; do echo "==> $$f"; psql -v ON_ERROR_STOP=1 -q -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -f $$f; done; \
 	. ./scripts/python_env.sh; "$$PY" checks/independent_recompute.py
 
 metrics: ## показать v_portfolio_metrics
-	set -a; . ./.env; set +a; export PGPASSWORD=$$POSTGRES_PASSWORD; \
+	. ./scripts/load_env.sh; \
 	psql -h $$POSTGRES_HOST -p $$POSTGRES_PORT -U $$POSTGRES_USER -d $$POSTGRES_DB -x -c "select * from reporting.v_portfolio_metrics"
 
 serve: ## локальный просмотр дашборда

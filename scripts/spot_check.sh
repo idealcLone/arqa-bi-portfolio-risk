@@ -4,6 +4,5 @@
 # а не по жёстко вбитым id — чтобы проверка оставалась осмысленной при смене данных.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-set -a; . ./.env; set +a
-export PGPASSWORD="$POSTGRES_PASSWORD"
+. ./scripts/load_env.sh
 psql -X -q -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f checks/07_spot_checks.sql
