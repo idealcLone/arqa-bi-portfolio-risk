@@ -194,7 +194,11 @@ def block_comparability():
                sum(s.par30_kzt) / sum(s.principal_kzt_active),
                sum(s.par90_kzt) / sum(s.principal_kzt_active)
         from reporting.v_loan_snapshot s
-        where s.report_date = '2026-10-01' and s.loan_id not in (select loan_id from ret)
+        -- анти-join через NOT EXISTS, а не NOT IN: план NOT IN зависит от того, влезает ли
+        -- подзапрос в work_mem (hashed SubPlan против пересчёта на каждую строку).
+        -- Локально выбирался hashed-вариант за 39 мс, в CI — нет, и шаг висел минутами.
+        where s.report_date = '2026-10-01'
+          and not exists (select 1 from ret where ret.loan_id = s.loan_id)
     """)[0]
     rep = psql("""
         select npl_share, par30_share, par90_share
