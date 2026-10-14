@@ -1,0 +1,97 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Портфель по программам на обе даты, млрд ₸. Данные: reporting.v_metrics_by_program",
+  "data": {
+    "url": "data/by_program.json"
+  },
+  "transform": [
+    {
+      "calculate": "datum.portfolio_kzt / 1e9",
+      "as": "portfolio_bn"
+    }
+  ],
+  "width": 330,
+  "height": 230,
+  "mark": {
+    "type": "bar",
+    "cornerRadiusEnd": 3,
+    "tooltip": true
+  },
+  "encoding": {
+    "y": {
+      "field": "program",
+      "type": "nominal",
+      "title": null,
+      "sort": {
+        "field": "portfolio_bn",
+        "op": "max",
+        "order": "descending"
+      }
+    },
+    "yOffset": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "x": {
+      "field": "portfolio_bn",
+      "type": "quantitative",
+      "title": "Портфель, млрд ₸",
+      "axis": {}
+    },
+    "color": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "title": "Дата среза",
+      "scale": {
+        "range": [
+          "#a0aec0",
+          "#2b6cb0"
+        ]
+      },
+      "legend": {
+        "orient": "top"
+      },
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "tooltip": [
+      {
+        "field": "program",
+        "type": "nominal",
+        "title": "Программа"
+      },
+      {
+        "field": "report_date_label",
+        "type": "ordinal",
+        "title": "Дата среза",
+        "sort": {
+          "field": "report_date",
+          "op": "min"
+        }
+      },
+      {
+        "field": "portfolio_bn",
+        "type": "quantitative",
+        "title": "Портфель, млрд ₸",
+        "format": ",.2f"
+      },
+      {
+        "field": "share_of_portfolio",
+        "type": "quantitative",
+        "title": "Доля в портфеле",
+        "format": ".2%"
+      },
+      {
+        "field": "loan_count",
+        "type": "quantitative",
+        "title": "Кредитов"
+      }
+    ]
+  }
+}

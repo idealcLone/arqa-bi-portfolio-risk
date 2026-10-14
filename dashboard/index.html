@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Риск-сводка кредитного портфеля — arqa BI</title>
+<!-- Vega / Vega-Lite / vega-embed с CDN: сборки на странице нет -->
+<script src="https://cdn.jsdelivr.net/npm/vega@5.30.0/build/vega.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.21.0/build/vega-lite.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.26.0/build/vega-embed.min.js"></script>
+<style>
+  :root {
+    --bg: #f7fafc; --card: #ffffff; --ink: #1a202c; --muted: #718096;
+    --line: #e2e8f0; --blue: #2b6cb0; --red: #c53030; --green: #2f855a; --orange: #dd6b20;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 28px 20px 56px; }
+  header h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header .sub { color: var(--muted); font-size: 14px; margin-bottom: 2px; }
+  header .src { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+  header .src code { background: #edf2f7; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  h2 { font-size: 17px; margin: 34px 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(186px, 1fr)); gap: 12px; margin-top: 18px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 14px 16px; }
+  .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 25px; font-weight: 650; margin: 7px 0 2px; letter-spacing: -0.02em; }
+  .kpi .prev { font-size: 12px; color: var(--muted); }
+  .kpi .delta { font-size: 13px; font-weight: 600; margin-top: 5px; }
+  .delta.up-bad { color: var(--red); } .delta.down-good { color: var(--green); }
+  .delta.up-good { color: var(--green); } .delta.down-bad { color: var(--red); }
+  .delta.flat { color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(470px, 1fr)); gap: 16px; }
+  .chart { background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 14px 16px 6px; overflow-x: auto; }
+  .chart h3 { font-size: 14.5px; margin: 0 0 2px; }
+  .chart p.note { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+  .chart .viz { min-height: 120px; }
+  .chart .viz canvas, .chart .viz svg { max-width: none; }
+  footer { margin-top: 40px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+  footer code { background: #edf2f7; padding: 1px 5px; border-radius: 3px; }
+  .err { color: var(--red); font-size: 13px; }
+  table.defs { border-collapse: collapse; font-size: 13px; width: 100%; background: var(--card); }
+  table.defs th, table.defs td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; vertical-align: top; }
+  table.defs th { background: #edf2f7; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Риск-сводка кредитного портфеля</h1>
+    <div class="sub" id="subtitle">—</div>
+    <div class="src">
+      Все цифры выгружены из вьюх <code>reporting.v_*</code> в <code>dashboard/data/*.json</code>;
+      в спеках Vega-Lite и в этой странице нет ни одного зашитого числа.
+    </div>
+  </header>
+
+  <h2>Ключевые метрики</h2>
+  <div class="kpis" id="kpis"></div>
+
+  <h2>Динамика</h2>
+  <div class="grid2">
+    <div class="chart">
+      <h3>Портфель и провизии</h3>
+      <p class="note">млрд ₸, по датам срезов. Источник: <code>v_portfolio_metrics</code></p>
+      <div class="viz" id="v01"></div>
+    </div>
+    <div class="chart">
+      <h3>PAR30 / PAR90 / NPL и покрытие провизиями</h3>
+      <p class="note">доля портфеля той же даты. Источник: <code>v_portfolio_metrics</code></p>
+      <div class="viz" id="v02"></div>
+    </div>
+  </div>
+
+  <h2>Разрез по отраслям</h2>
+  <div class="grid2">
+    <div class="chart">
+      <h3>Портфель по отраслям</h3>
+      <p class="note">млрд ₸. Источник: <code>v_metrics_by_sector</code></p>
+      <div class="viz" id="v03"></div>
+    </div>
+    <div class="chart">
+      <h3>PAR30 и NPL внутри отрасли</h3>
+      <p class="note">доля портфеля отрасли. Источник: <code>v_metrics_by_sector</code></p>
+      <div class="viz" id="v04"></div>
+    </div>
+  </div>
+
+  <h2>Разрез по программам</h2>
+  <div class="grid2">
+    <div class="chart">
+      <h3>Портфель по программам</h3>
+      <p class="note">млрд ₸. Источник: <code>v_metrics_by_program</code></p>
+      <div class="viz" id="v05"></div>
+    </div>
+    <div class="chart">
+      <h3>PAR30 и NPL внутри программы</h3>
+      <p class="note">доля портфеля программы. Источник: <code>v_metrics_by_program</code></p>
+      <div class="viz" id="v06"></div>
+    </div>
+  </div>
+
+  <h2>Концентрация и структура просрочки</h2>
+  <div class="grid2">
+    <div class="chart">
+      <h3>Топ-10 групп связанных заёмщиков</h3>
+      <p class="note">экспозиция, млрд ₸; подпись — доля в портфеле. Источник: <code>v_top_groups</code></p>
+      <div class="viz" id="v07"></div>
+    </div>
+    <div class="chart">
+      <h3>Портфель и провизии по бакетам просрочки</h3>
+      <p class="note">млрд ₸. Источник: <code>v_metrics_by_dpd_bucket</code></p>
+      <div class="viz" id="v08"></div>
+    </div>
+  </div>
+
+  <h2>Определения метрик</h2>
+  <table class="defs">
+    <tr><th>Метрика</th><th>Определение</th></tr>
+    <tr><td>Портфель</td><td>Σ <code>principal_outstanding</code> в ₸ по курсу на дату среза, без списанных (<code>written_off = 1</code>)</td></tr>
+    <tr><td>PAR30 / PAR90</td><td>доля портфеля с просрочкой строго больше 30 / 90 дней</td></tr>
+    <tr><td>NPL</td><td>доля портфеля с просрочкой больше 90 дней <b>или</b> реструктуризацией</td></tr>
+    <tr><td>Провизии</td><td>остаток × ставка: 50% для NPL (приоритет), 10% при просрочке 31–90, 1% при просрочке до 30 дней</td></tr>
+    <tr><td>Концентрация</td><td>доля 10 крупнейших групп связанных заёмщиков (<code>group_id</code>) в портфеле даты</td></tr>
+  </table>
+
+  <footer>
+    Снимок данных, выгруженный из PostgreSQL; <code>make all</code> пересобирает БД из CSV,
+    прогоняет проверки и перегенерирует эти JSON-файлы.
+    Разрезы считаются от портфеля своего разреза, доли общего уровня — от портфеля даты.
+  </footer>
+</div>
+
+<script>
+// Русский формат чисел и дат для всех графиков и KPI.
+const RU_NUM = {decimal: ",", thousands: " ", grouping: [3], currency: ["", " ₸"]};
+const RU_TIME = {
+  dateTime: "%A, %e %B %Y г. %X", date: "%d.%m.%Y", time: "%H:%M:%S",
+  periods: ["AM", "PM"],
+  days: ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"],
+  shortDays: ["вс","пн","вт","ср","чт","пт","сб"],
+  months: ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],
+  shortMonths: ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"]
+};
+vega.formatLocale(RU_NUM);
+vega.timeFormatLocale(RU_TIME);
+
+const fmtBn   = v => (v / 1e9).toLocaleString("ru-RU", {minimumFractionDigits: 1, maximumFractionDigits: 1}) + " млрд ₸";
+const fmtPct  = v => (v * 100).toLocaleString("ru-RU", {minimumFractionDigits: 1, maximumFractionDigits: 1}) + "%";
+const fmtInt  = v => Number(v).toLocaleString("ru-RU");
+const fmtDate = s => s.split("-").reverse().join(".");
+
+// Знак изменения: для риск-метрик рост — плохо, для портфеля рост — хорошо.
+function deltaHtml(value, kind, worseWhenUp) {
+  if (value === null || value === undefined) return '<div class="delta flat">—</div>';
+  const v = Number(value);
+  const sign = v > 0 ? "+" : (v < 0 ? "−" : "");
+  const abs = Math.abs(v);
+  const text = kind === "pp"
+    ? sign + abs.toLocaleString("ru-RU", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " п.п."
+    : sign + (abs / 1e9).toLocaleString("ru-RU", {minimumFractionDigits: 1, maximumFractionDigits: 1}) + " млрд ₸";
+  let cls = "flat";
+  if (v !== 0) cls = worseWhenUp ? (v > 0 ? "up-bad" : "down-good") : (v > 0 ? "up-good" : "down-bad");
+  return `<div class="delta ${cls}">${text} к пред. срезу</div>`;
+}
+
+function kpiCard(label, valueText, prevText, deltaValue, kind, worseWhenUp) {
+  return `<div class="kpi">
+      <div class="label">${label}</div>
+      <div class="value">${valueText}</div>
+      <div class="prev">было ${prevText}</div>
+      ${deltaHtml(deltaValue, kind, worseWhenUp)}
+    </div>`;
+}
+
+async function render() {
+  let metrics;
+  try {
+    metrics = await (await fetch("data/metrics.json", {cache: "no-store"})).json();
+  } catch (e) {
+    document.getElementById("kpis").innerHTML =
+      '<div class="err">Не удалось загрузить data/metrics.json — запустите страницу с http-сервера (python -m http.server).</div>';
+    return;
+  }
+  metrics.sort((a, b) => a.report_date.localeCompare(b.report_date));
+  const prev = metrics[0];
+  const cur = metrics[metrics.length - 1];
+
+  document.getElementById("subtitle").textContent =
+    `на ${fmtDate(cur.report_date)} · предыдущий срез ${fmtDate(prev.report_date)} · ` +
+    `${fmtInt(cur.loan_count)} кредитов, ${fmtInt(cur.borrower_count)} заёмщиков, ${fmtInt(cur.group_count)} групп · ` +
+    `курс USD ${Number(cur.usd_rate_kzt).toLocaleString("ru-RU", {minimumFractionDigits: 2, maximumFractionDigits: 2})} ₸`;
+
+  document.getElementById("kpis").innerHTML = [
+    kpiCard("Портфель", fmtBn(cur.portfolio_kzt), fmtBn(prev.portfolio_kzt), cur.portfolio_kzt_chg, "kzt", false),
+    kpiCard("PAR30", fmtPct(cur.par30_share), fmtPct(prev.par30_share), cur.par30_share_chg_pp, "pp", true),
+    kpiCard("PAR90", fmtPct(cur.par90_share), fmtPct(prev.par90_share), cur.par90_share_chg_pp, "pp", true),
+    kpiCard("NPL", fmtPct(cur.npl_share), fmtPct(prev.npl_share), cur.npl_share_chg_pp, "pp", true),
+    kpiCard("Провизии", fmtBn(cur.provisions_kzt), fmtBn(prev.provisions_kzt), cur.provisions_kzt_chg, "kzt", true),
+    kpiCard("Топ-10 групп", fmtPct(cur.top10_group_share), fmtPct(prev.top10_group_share), cur.top10_group_share_chg_pp, "pp", true)
+  ].join("");
+
+  const specs = [
+    ["v01", "specs/01_dynamics_portfolio.json"],
+    ["v02", "specs/02_dynamics_ratios.json"],
+    ["v03", "specs/03_sector_portfolio.json"],
+    ["v04", "specs/04_sector_risk.json"],
+    ["v05", "specs/05_program_portfolio.json"],
+    ["v06", "specs/06_program_risk.json"],
+    ["v07", "specs/07_top_groups.json"],
+    ["v08", "specs/08_dpd_buckets.json"]
+  ];
+  const opts = {
+    actions: {export: true, source: true, compiled: false, editor: false},
+    renderer: "canvas",
+    formatLocale: RU_NUM,
+    timeFormatLocale: RU_TIME,
+    config: {
+      font: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+      axis: {labelColor: "#4a5568", titleColor: "#4a5568", gridColor: "#edf2f7", domainColor: "#cbd5e0", labelFontSize: 11, titleFontSize: 11},
+      legend: {labelColor: "#4a5568", titleColor: "#4a5568", labelFontSize: 11, titleFontSize: 11},
+      header: {labelColor: "#2d3748", labelFontSize: 12},
+      view: {stroke: null}
+    }
+  };
+  await Promise.all(specs.map(async ([id, url]) => {
+    try {
+      await vegaEmbed("#" + id, url, opts);
+    } catch (e) {
+      document.getElementById(id).innerHTML = `<div class="err">Ошибка рендера ${url}: ${e}</div>`;
+      console.error(url, e);
+    }
+  }));
+  document.body.dataset.rendered = "true";   // маркер для headless-скриншота
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+[
+    {
+        "group_id": "G0004",
+        "loan_count": 9,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 21641424432.00,
+        "exposure_rank": 1,
+        "borrower_count": 5,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.04344330857537728906
+    },
+    {
+        "group_id": "G0001",
+        "loan_count": 14,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 16722658333.25,
+        "exposure_rank": 2,
+        "borrower_count": 5,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.03356930632984427800
+    },
+    {
+        "group_id": "G0005",
+        "loan_count": 10,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 12121214018.76,
+        "exposure_rank": 3,
+        "borrower_count": 6,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.02433230042596207793
+    },
+    {
+        "group_id": "G0003",
+        "loan_count": 7,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 7781554473.46,
+        "exposure_rank": 4,
+        "borrower_count": 3,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.01562080505600937069
+    },
+    {
+        "group_id": "G2277",
+        "loan_count": 3,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 5743651923.00,
+        "exposure_rank": 5,
+        "borrower_count": 1,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.01152988998596098310
+    },
+    {
+        "group_id": "G2208",
+        "loan_count": 3,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 4545726418.60,
+        "exposure_rank": 6,
+        "borrower_count": 1,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.00912515699338530825
+    },
+    {
+        "group_id": "G1995",
+        "loan_count": 5,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 4499374220.00,
+        "exposure_rank": 7,
+        "borrower_count": 1,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.00903210891915829791
+    },
+    {
+        "group_id": "G0002",
+        "loan_count": 7,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 4186246586.76,
+        "exposure_rank": 8,
+        "borrower_count": 5,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.00840353197695811516
+    },
+    {
+        "group_id": "G1839",
+        "loan_count": 5,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 3939489573.00,
+        "exposure_rank": 9,
+        "borrower_count": 1,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.00790818837674373627
+    },
+    {
+        "group_id": "G2002",
+        "loan_count": 3,
+        "report_date": "2026-09-01",
+        "exposure_kzt": 3717445669.00,
+        "exposure_rank": 10,
+        "borrower_count": 1,
+        "report_date_label": "01.09.2026",
+        "share_of_portfolio": 0.00746245423068216933
+    },
+    {
+        "group_id": "G0004",
+        "loan_count": 9,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 21037464429.00,
+        "exposure_rank": 1,
+        "borrower_count": 5,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.04340532186737415102
+    },
+    {
+        "group_id": "G0001",
+        "loan_count": 14,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 16300313177.14,
+        "exposure_rank": 2,
+        "borrower_count": 5,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.03363144557561081095
+    },
+    {
+        "group_id": "G0005",
+        "loan_count": 10,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 11662773421.29,
+        "exposure_rank": 3,
+        "borrower_count": 6,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.02406309162997415324
+    },
+    {
+        "group_id": "G0003",
+        "loan_count": 7,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 7405085352.80,
+        "exposure_rank": 4,
+        "borrower_count": 3,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.01527846258651714961
+    },
+    {
+        "group_id": "G2277",
+        "loan_count": 3,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 5508135546.00,
+        "exposure_rank": 5,
+        "borrower_count": 1,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.01136460133159779561
+    },
+    {
+        "group_id": "G2208",
+        "loan_count": 3,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 4404887334.46,
+        "exposure_rank": 6,
+        "borrower_count": 1,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.00908833634333776079
+    },
+    {
+        "group_id": "G1995",
+        "loan_count": 5,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 4293043220.00,
+        "exposure_rank": 7,
+        "borrower_count": 1,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.00885757517896399426
+    },
+    {
+        "group_id": "G0002",
+        "loan_count": 7,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 4034982860.35,
+        "exposure_rank": 8,
+        "borrower_count": 5,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.00832513492174469669
+    },
+    {
+        "group_id": "G0013",
+        "loan_count": 12,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 4002584151.32,
+        "exposure_rank": 9,
+        "borrower_count": 5,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.00825828863433774051
+    },
+    {
+        "group_id": "G1839",
+        "loan_count": 5,
+        "report_date": "2026-10-01",
+        "exposure_kzt": 3826863699.00,
+        "exposure_rank": 10,
+        "borrower_count": 1,
+        "report_date_label": "01.10.2026",
+        "share_of_portfolio": 0.00789573530395082723
+    }
+]

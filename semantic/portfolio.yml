@@ -1,0 +1,145 @@
+# Семантическая модель кредитного портфеля над очищенной витриной.
+#
+# Ограничение формата: тип меры — только sum / avg / count. Поэтому доли (PAR30, PAR90,
+# NPL, покрытие провизиями, концентрация) НЕ являются мерами: они собираются на стороне
+# дашборда как отношение двух сумм, а в витрине для этого есть готовые колонки-слагаемые:
+#   PAR30     = sum(par30_kzt)     / sum(principal_kzt_active)
+#   PAR90     = sum(par90_kzt)     / sum(principal_kzt_active)
+#   NPL       = sum(npl_kzt)       / sum(principal_kzt_active)
+#   провизии% = sum(provision_kzt) / sum(principal_kzt_active)
+#   топ-10    = sum(principal_kzt_active) по 10 крупнейшим group_id / тот же знаменатель
+# Знаменатель у всех долей один и тот же — portfolio_kzt той же даты.
+#
+# Списанные кредиты (written_off = 1) физически остаются в источнике, но во всех денежных
+# колонках у них 0, поэтому любая мера ниже автоматически считается «без списанных».
+# Исключение — мера written_off_kzt, она существует именно для контроля объёма списаний.
+
+model: portfolio_risk
+source: reporting.v_loan_snapshot
+label: Риск-сводка кредитного портфеля
+description: >
+  Портфель, просрочка (PAR30/PAR90), NPL, провизии и концентрация по группам связанных
+  заёмщиков на срезы 01.09.2026 и 01.10.2026. Суммы в тенге по курсу на дату среза.
+
+dimensions:
+  - name: report_date
+    column: report_date
+    type: date
+    label: Дата среза
+
+  - name: sector
+    column: sector
+    type: string
+    label: Отрасль
+
+  - name: program
+    column: program
+    type: string
+    label: Программа
+
+  - name: currency
+    column: currency
+    type: string
+    label: Валюта кредита
+
+  - name: dpd_bucket
+    column: dpd_bucket
+    type: string
+    label: Бакет просрочки
+    order_by: dpd_bucket_order
+
+  - name: group_id
+    column: group_id
+    type: string
+    label: Группа связанных заёмщиков
+
+  - name: borrower_id
+    column: borrower_id
+    type: string
+    label: Заёмщик
+
+  - name: loan_id
+    column: loan_id
+    type: string
+    label: Кредит
+
+  - name: is_npl
+    column: is_npl
+    type: boolean
+    label: Признак NPL
+
+  - name: is_restructured
+    column: restructured
+    type: boolean
+    label: Реструктуризация
+
+  - name: is_written_off
+    column: is_written_off
+    type: boolean
+    label: Списан
+
+  - name: is_past_maturity
+    column: is_past_maturity
+    type: boolean
+    label: Срок погашения истёк
+
+measures:
+  - name: portfolio_kzt
+    column: principal_kzt_active
+    type: sum
+    format: "#,##0"
+    label: Портфель, ₸
+
+  - name: par30_kzt
+    column: par30_kzt
+    type: sum
+    format: "#,##0"
+    label: Портфель с просрочкой > 30 дней, ₸
+
+  - name: par90_kzt
+    column: par90_kzt
+    type: sum
+    format: "#,##0"
+    label: Портфель с просрочкой > 90 дней, ₸
+
+  - name: npl_kzt
+    column: npl_kzt
+    type: sum
+    format: "#,##0"
+    label: NPL, ₸
+
+  - name: provisions_kzt
+    column: provision_kzt
+    type: sum
+    format: "#,##0"
+    label: Провизии, ₸
+
+  - name: written_off_kzt
+    column: written_off_kzt
+    type: sum
+    format: "#,##0"
+    label: Списано (вне портфеля), ₸
+
+  - name: loan_count
+    column: active_loan_flag
+    type: sum
+    format: "#,##0"
+    label: Кредитов в портфеле
+
+  - name: borrower_count
+    column: borrower_id
+    type: count
+    format: "#,##0"
+    label: Заёмщиков (строк)
+
+  - name: avg_provision_rate
+    column: provision_rate
+    type: avg
+    format: "0.00%"
+    label: Средняя ставка провизий
+
+  - name: avg_days_past_due
+    column: days_past_due
+    type: avg
+    format: "#,##0.0"
+    label: Средняя просрочка, дней

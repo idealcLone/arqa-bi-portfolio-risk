@@ -178,3 +178,30 @@ have={(r['date'].strip(), r['currency'].strip().upper()) for r in fx}
 for (d,c),n in sorted(need.items()):
     status='KZT (курс не нужен)' if c=='KZT' else ('ЕСТЬ' if (d,c) in have else '>>> НЕТ КУРСА <<<')
     print(f"  {d} {c}: {n} кредитов — {status}")
+
+print()
+print("=== 16. Переходы флагов между срезами (сопоставимость дат) ===")
+# Эту проверку добавил после того, как разбор изменения метрик показал странность:
+# списанных на 01.09 было 25, на 01.10 — 8. Профиль «внутри среза» такое не ловит.
+state = {}
+for r in pf:
+    key = r['loan_id'].strip()
+    state.setdefault(key, {})[r['report_date'].strip()] = r
+d9, d10 = '2026-09-01', '2026-10-01'
+both = [v for v in state.values() if d9 in v and d10 in v]
+def flag(r, name): return r[name].strip() == '1'
+trans = collections.Counter()
+returned_sum = decimal.Decimal(0)
+fx = {(r['date'], r['currency'].strip().upper()): decimal.Decimal(r['rate_kzt']) for r in csv.DictReader(open(FX))}
+for v in both:
+    a, b = v[d9], v[d10]
+    trans[('written_off', flag(a, 'written_off'), flag(b, 'written_off'))] += 1
+    trans[('restructured', flag(a, 'restructured'), flag(b, 'restructured'))] += 1
+    if flag(a, 'written_off') and not flag(b, 'written_off'):
+        rate = decimal.Decimal(1) if b['currency'].strip().upper() == 'KZT' else fx[(d10, b['currency'].strip().upper())]
+        returned_sum += (decimal.Decimal(b['principal_outstanding']) * rate).quantize(decimal.Decimal('0.01'))
+for (name, a, b), n in sorted(trans.items()):
+    if a != b:
+        print(f"  {name}: {int(a)} → {int(b)} у {n} кредитов")
+print(f"  >>> вернулись из списания (written_off 1 → 0): сумма в портфеле 01.10 = {returned_sum} ₸")
+print(f"  кредитов, присутствующих в обоих срезах: {len(both)}")

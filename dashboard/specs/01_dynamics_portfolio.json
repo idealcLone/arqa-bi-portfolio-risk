@@ -1,0 +1,96 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Портфель и провизии по датам срезов, млрд ₸. Данные: reporting.v_portfolio_metrics",
+  "data": {
+    "url": "data/metrics.json"
+  },
+  "transform": [
+    {
+      "calculate": "datum.portfolio_kzt / 1e9",
+      "as": "Портфель"
+    },
+    {
+      "calculate": "datum.provisions_kzt / 1e9",
+      "as": "Провизии"
+    },
+    {
+      "fold": [
+        "Портфель",
+        "Провизии"
+      ],
+      "as": [
+        "Показатель",
+        "Значение"
+      ]
+    }
+  ],
+  "width": 470,
+  "height": 250,
+  "mark": {
+    "type": "bar",
+    "cornerRadiusEnd": 3,
+    "tooltip": true
+  },
+  "encoding": {
+    "x": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "title": null,
+      "axis": {
+        "labelAngle": 0
+      },
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "xOffset": {
+      "field": "Показатель"
+    },
+    "y": {
+      "field": "Значение",
+      "type": "quantitative",
+      "title": "млрд ₸",
+      "axis": {}
+    },
+    "color": {
+      "field": "Показатель",
+      "type": "nominal",
+      "title": null,
+      "scale": {
+        "domain": [
+          "Портфель",
+          "Провизии"
+        ],
+        "range": [
+          "#2b6cb0",
+          "#dd6b20"
+        ]
+      },
+      "legend": {
+        "orient": "top"
+      }
+    },
+    "tooltip": [
+      {
+        "field": "report_date_label",
+        "type": "ordinal",
+        "title": "Дата среза",
+        "sort": {
+          "field": "report_date",
+          "op": "min"
+        }
+      },
+      {
+        "field": "Показатель",
+        "type": "nominal"
+      },
+      {
+        "field": "Значение",
+        "type": "quantitative",
+        "title": "млрд ₸",
+        "format": ",.2f"
+      }
+    ]
+  }
+}

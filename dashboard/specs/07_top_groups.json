@@ -1,0 +1,129 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Топ-10 групп связанных заёмщиков по экспозиции на каждую дату. Данные: reporting.v_top_groups",
+  "data": {
+    "url": "data/top_groups.json"
+  },
+  "transform": [
+    {
+      "calculate": "datum.exposure_kzt / 1e9",
+      "as": "exposure_bn"
+    }
+  ],
+  "width": 390,
+  "height": 330,
+  "layer": [
+    {
+      "mark": {
+        "type": "bar",
+        "cornerRadiusEnd": 3,
+        "tooltip": true
+      },
+      "encoding": {
+        "color": {
+          "field": "report_date_label",
+          "type": "ordinal",
+          "title": "Дата среза",
+          "scale": {
+            "range": [
+              "#a0aec0",
+              "#2b6cb0"
+            ]
+          },
+          "legend": {
+            "orient": "top"
+          },
+          "sort": {
+            "field": "report_date",
+            "op": "min"
+          }
+        }
+      }
+    },
+    {
+      "mark": {
+        "type": "text",
+        "align": "left",
+        "dx": 4,
+        "fontSize": 9,
+        "color": "#4a5568"
+      },
+      "encoding": {
+        "text": {
+          "field": "share_of_portfolio",
+          "type": "quantitative",
+          "format": ".2%"
+        }
+      }
+    }
+  ],
+  "encoding": {
+    "y": {
+      "field": "group_id",
+      "type": "nominal",
+      "title": null,
+      "sort": {
+        "field": "exposure_bn",
+        "op": "max",
+        "order": "descending"
+      }
+    },
+    "yOffset": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "x": {
+      "field": "exposure_bn",
+      "type": "quantitative",
+      "title": "Экспозиция, млрд ₸",
+      "axis": {}
+    },
+    "tooltip": [
+      {
+        "field": "group_id",
+        "type": "nominal",
+        "title": "Группа"
+      },
+      {
+        "field": "report_date_label",
+        "type": "ordinal",
+        "title": "Дата среза",
+        "sort": {
+          "field": "report_date",
+          "op": "min"
+        }
+      },
+      {
+        "field": "exposure_rank",
+        "type": "quantitative",
+        "title": "Ранг"
+      },
+      {
+        "field": "exposure_bn",
+        "type": "quantitative",
+        "title": "Экспозиция, млрд ₸",
+        "format": ",.2f"
+      },
+      {
+        "field": "share_of_portfolio",
+        "type": "quantitative",
+        "title": "Доля портфеля",
+        "format": ".3%"
+      },
+      {
+        "field": "loan_count",
+        "type": "quantitative",
+        "title": "Кредитов"
+      },
+      {
+        "field": "borrower_count",
+        "type": "quantitative",
+        "title": "Заёмщиков"
+      }
+    ]
+  }
+}

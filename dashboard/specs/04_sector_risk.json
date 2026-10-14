@@ -1,0 +1,121 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "NPL и PAR30 внутри отрасли на обе даты. Данные: reporting.v_metrics_by_sector",
+  "data": {
+    "url": "data/by_sector.json"
+  },
+  "transform": [
+    {
+      "calculate": "datum.npl_share",
+      "as": "NPL"
+    },
+    {
+      "calculate": "datum.par30_share",
+      "as": "PAR30"
+    },
+    {
+      "fold": [
+        "NPL",
+        "PAR30"
+      ],
+      "as": [
+        "Метрика",
+        "Доля"
+      ]
+    }
+  ],
+  "width": 190,
+  "height": 290,
+  "mark": {
+    "type": "bar",
+    "cornerRadiusEnd": 3,
+    "tooltip": true
+  },
+  "encoding": {
+    "y": {
+      "field": "sector",
+      "type": "nominal",
+      "title": null,
+      "sort": {
+        "field": "Доля",
+        "op": "max",
+        "order": "descending"
+      }
+    },
+    "yOffset": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "x": {
+      "field": "Доля",
+      "type": "quantitative",
+      "title": "доля портфеля отрасли",
+      "axis": {}
+    },
+    "color": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "title": "Дата среза",
+      "scale": {
+        "range": [
+          "#a0aec0",
+          "#c53030"
+        ]
+      },
+      "legend": {
+        "orient": "top"
+      },
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "column": {
+      "field": "Метрика",
+      "type": "nominal",
+      "title": null,
+      "sort": [
+        "PAR30",
+        "NPL"
+      ],
+      "header": {
+        "labelFontWeight": "bold"
+      }
+    },
+    "tooltip": [
+      {
+        "field": "sector",
+        "type": "nominal",
+        "title": "Отрасль"
+      },
+      {
+        "field": "report_date_label",
+        "type": "ordinal",
+        "title": "Дата среза",
+        "sort": {
+          "field": "report_date",
+          "op": "min"
+        }
+      },
+      {
+        "field": "Метрика",
+        "type": "nominal"
+      },
+      {
+        "field": "Доля",
+        "type": "quantitative",
+        "format": ".4%"
+      },
+      {
+        "field": "npl_kzt",
+        "type": "quantitative",
+        "title": "NPL, ₸",
+        "format": ",.0f"
+      }
+    ]
+  }
+}

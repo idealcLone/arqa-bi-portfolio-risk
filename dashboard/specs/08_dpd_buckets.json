@@ -1,0 +1,124 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Портфель и провизии по бакетам просрочки. Данные: reporting.v_metrics_by_dpd_bucket",
+  "data": {
+    "url": "data/by_dpd_bucket.json"
+  },
+  "transform": [
+    {
+      "calculate": "datum.portfolio_kzt / 1e9",
+      "as": "Портфель"
+    },
+    {
+      "calculate": "datum.provisions_kzt / 1e9",
+      "as": "Провизии"
+    },
+    {
+      "fold": [
+        "Портфель",
+        "Провизии"
+      ],
+      "as": [
+        "Показатель",
+        "Значение"
+      ]
+    }
+  ],
+  "width": 215,
+  "height": 250,
+  "mark": {
+    "type": "bar",
+    "cornerRadiusEnd": 3,
+    "tooltip": true
+  },
+  "encoding": {
+    "x": {
+      "field": "dpd_bucket",
+      "type": "nominal",
+      "title": "Просрочка, дней",
+      "sort": {
+        "field": "dpd_bucket_order"
+      },
+      "axis": {
+        "labelAngle": 0
+      }
+    },
+    "xOffset": {
+      "field": "Показатель",
+      "type": "nominal"
+    },
+    "y": {
+      "field": "Значение",
+      "type": "quantitative",
+      "title": "млрд ₸",
+      "axis": {}
+    },
+    "color": {
+      "field": "Показатель",
+      "type": "nominal",
+      "title": null,
+      "scale": {
+        "domain": [
+          "Портфель",
+          "Провизии"
+        ],
+        "range": [
+          "#2b6cb0",
+          "#dd6b20"
+        ]
+      },
+      "legend": {
+        "orient": "top"
+      }
+    },
+    "column": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "title": null,
+      "header": {
+        "labelFontWeight": "bold"
+      },
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "tooltip": [
+      {
+        "field": "report_date_label",
+        "type": "ordinal",
+        "title": "Дата среза",
+        "sort": {
+          "field": "report_date",
+          "op": "min"
+        }
+      },
+      {
+        "field": "dpd_bucket",
+        "type": "nominal",
+        "title": "Бакет"
+      },
+      {
+        "field": "Показатель",
+        "type": "nominal"
+      },
+      {
+        "field": "Значение",
+        "type": "quantitative",
+        "title": "млрд ₸",
+        "format": ",.2f"
+      },
+      {
+        "field": "share_of_portfolio",
+        "type": "quantitative",
+        "title": "Доля портфеля",
+        "format": ".2%"
+      },
+      {
+        "field": "loan_count",
+        "type": "quantitative",
+        "title": "Кредитов"
+      }
+    ]
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "PAR30 / PAR90 / NPL и покрытие провизиями по датам. Данные: reporting.v_portfolio_metrics",
+  "data": {
+    "url": "data/metrics.json"
+  },
+  "transform": [
+    {
+      "calculate": "datum.par30_share",
+      "as": "PAR30"
+    },
+    {
+      "calculate": "datum.par90_share",
+      "as": "PAR90"
+    },
+    {
+      "calculate": "datum.npl_share",
+      "as": "NPL"
+    },
+    {
+      "calculate": "datum.provision_coverage",
+      "as": "Провизии / портфель"
+    },
+    {
+      "fold": [
+        "PAR30",
+        "PAR90",
+        "NPL",
+        "Провизии / портфель"
+      ],
+      "as": [
+        "Метрика",
+        "Доля"
+      ]
+    }
+  ],
+  "width": 470,
+  "height": 250,
+  "layer": [
+    {
+      "mark": {
+        "type": "bar",
+        "cornerRadiusEnd": 3,
+        "tooltip": true
+      },
+      "encoding": {
+        "color": {
+          "field": "report_date_label",
+          "type": "ordinal",
+          "title": "Дата среза",
+          "scale": {
+            "range": [
+              "#a0aec0",
+              "#2b6cb0"
+            ]
+          },
+          "legend": {
+            "orient": "top"
+          },
+          "sort": {
+            "field": "report_date",
+            "op": "min"
+          }
+        }
+      }
+    },
+    {
+      "mark": {
+        "type": "text",
+        "dy": -6,
+        "fontSize": 10,
+        "color": "#2d3748"
+      },
+      "encoding": {
+        "text": {
+          "field": "Доля",
+          "type": "quantitative",
+          "format": ".2%"
+        }
+      }
+    }
+  ],
+  "encoding": {
+    "x": {
+      "field": "Метрика",
+      "type": "nominal",
+      "title": null,
+      "sort": [
+        "PAR30",
+        "PAR90",
+        "NPL",
+        "Провизии / портфель"
+      ],
+      "axis": {
+        "labelAngle": 0
+      }
+    },
+    "xOffset": {
+      "field": "report_date_label",
+      "type": "ordinal",
+      "sort": {
+        "field": "report_date",
+        "op": "min"
+      }
+    },
+    "y": {
+      "field": "Доля",
+      "type": "quantitative",
+      "title": "доля портфеля",
+      "axis": {}
+    },
+    "tooltip": [
+      {
+        "field": "report_date_label",
+        "type": "ordinal",
+        "title": "Дата среза",
+        "sort": {
+          "field": "report_date",
+          "op": "min"
+        }
+      },
+      {
+        "field": "Метрика",
+        "type": "nominal"
+      },
+      {
+        "field": "Доля",
+        "type": "quantitative",
+        "format": ".4%"
+      }
+    ]
+  }
+}
