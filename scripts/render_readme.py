@@ -136,19 +136,29 @@ def block_top_groups():
 
 
 def block_npl_bridge():
+    # Один проход по витрине с условной агрегацией вместо self-join двух её копий:
+    # self-join заставлял планировщик выбирать способ соединения, и в CI выбор оказывался
+    # катастрофическим (шаг висел минутами). Здесь витрина читается ровно один раз.
     r = psql("""
-        with j as (
-          select s9.loan_id, s9.npl_kzt n9, s10.npl_kzt n10, s9.is_npl i9, s10.is_npl i10, s10.is_written_off w10
-          from reporting.v_loan_snapshot s9
-          join reporting.v_loan_snapshot s10 using (loan_id)
-          where s9.report_date = '2026-09-01' and s10.report_date = '2026-10-01')
+        with per_loan as (
+            select
+                loan_id,
+                coalesce(sum(npl_kzt) filter (where report_date = '2026-09-01'), 0) as n9,
+                coalesce(sum(npl_kzt) filter (where report_date = '2026-10-01'), 0) as n10,
+                bool_or(is_npl         and report_date = '2026-09-01') as i9,
+                bool_or(is_npl         and report_date = '2026-10-01') as i10,
+                bool_or(is_written_off and report_date = '2026-10-01') as w10
+            from reporting.v_loan_snapshot
+            where report_date in ('2026-09-01', '2026-10-01')
+            group by loan_id
+        )
         select sum(n9),
-               coalesce(sum(n9) filter (where i9 and w10), 0),
-               coalesce(sum(n9) filter (where i9 and not i10 and not w10), 0),
+               coalesce(sum(n9)  filter (where i9 and w10), 0),
+               coalesce(sum(n9)  filter (where i9 and not i10 and not w10), 0),
                coalesce(sum(n10) filter (where not i9 and i10), 0),
                coalesce(sum(n10 - n9) filter (where i9 and i10 and not w10), 0),
                sum(n10)
-        from j
+        from per_loan
     """)[0]
     start, to_wo, cured, new_npl, residual, end = (Decimal(x) for x in r)
     check = start - to_wo - cured + new_npl + residual - end
@@ -167,15 +177,43 @@ def block_npl_bridge():
 
 
 def block_comparability():
+    # Один проход по витрине: кредиты с переходом written_off 1 → 0 и показатели 01.10
+    # с ними и без них считаются в одной агрегации (см. комментарий в block_npl_bridge).
     r = psql("""
-        select count(*), coalesce(sum(s10.principal_kzt_active), 0), coalesce(sum(s10.npl_kzt), 0),
-               (select portfolio_kzt from reporting.v_portfolio_metrics where report_date = '2026-10-01')
-        from reporting.v_loan_snapshot s9
-        join reporting.v_loan_snapshot s10 using (loan_id)
-        where s9.report_date = '2026-09-01' and s10.report_date = '2026-10-01'
-          and s9.is_written_off and not s10.is_written_off
+        with per_loan as (
+            select
+                loan_id,
+                bool_or(is_written_off and report_date = '2026-09-01') as wo9,
+                bool_or(is_written_off and report_date = '2026-10-01') as wo10,
+                coalesce(sum(principal_kzt_active) filter (where report_date = '2026-10-01'), 0) as p10,
+                coalesce(sum(npl_kzt)              filter (where report_date = '2026-10-01'), 0) as n10,
+                coalesce(sum(par30_kzt)            filter (where report_date = '2026-10-01'), 0) as p30,
+                coalesce(sum(par90_kzt)            filter (where report_date = '2026-10-01'), 0) as p90
+            from reporting.v_loan_snapshot
+            where report_date in ('2026-09-01', '2026-10-01')
+            group by loan_id
+        ),
+        marked as (
+            select per_loan.*, (wo9 and not wo10) as returned_from_wo from per_loan
+        )
+        select
+            count(*) filter (where returned_from_wo),
+            coalesce(sum(p10) filter (where returned_from_wo), 0),
+            coalesce(sum(n10) filter (where returned_from_wo), 0),
+            sum(p10),
+            coalesce(sum(p10) filter (where not returned_from_wo), 0),
+            coalesce(sum(n10) filter (where not returned_from_wo), 0),
+            coalesce(sum(p30) filter (where not returned_from_wo), 0),
+            coalesce(sum(p90) filter (where not returned_from_wo), 0)
+        from marked
     """)[0]
-    cnt, amount, npl_part, portfolio = int(r[0]), Decimal(r[1]), Decimal(r[2]), Decimal(r[3])
+    cnt = int(r[0])
+    amount, npl_part, portfolio = Decimal(r[1]), Decimal(r[2]), Decimal(r[3])
+    comp_p, comp_n, comp_30, comp_90 = (Decimal(x) for x in r[4:8])
+    rep = psql("""
+        select npl_share, par30_share, par90_share
+        from reporting.v_portfolio_metrics where report_date = '2026-10-01'
+    """)[0]
     fx = psql("""
         select m9.usd_principal_usd, m9.usd_rate_kzt, m10.usd_principal_usd, m10.usd_rate_kzt,
                round(m10.usd_principal_usd * (m10.usd_rate_kzt - m9.usd_rate_kzt), 2),
@@ -183,44 +221,23 @@ def block_comparability():
         from reporting.v_portfolio_metrics m9, reporting.v_portfolio_metrics m10
         where m9.report_date = '2026-09-01' and m10.report_date = '2026-10-01'
     """)[0]
-    comp = psql("""
-        with ret as (
-          select s10.loan_id
-          from reporting.v_loan_snapshot s9
-          join reporting.v_loan_snapshot s10 using (loan_id)
-          where s9.report_date = '2026-09-01' and s10.report_date = '2026-10-01'
-            and s9.is_written_off and not s10.is_written_off)
-        select sum(s.npl_kzt) / sum(s.principal_kzt_active),
-               sum(s.par30_kzt) / sum(s.principal_kzt_active),
-               sum(s.par90_kzt) / sum(s.principal_kzt_active)
-        from reporting.v_loan_snapshot s
-        -- анти-join через NOT EXISTS, а не NOT IN: план NOT IN зависит от того, влезает ли
-        -- подзапрос в work_mem (hashed SubPlan против пересчёта на каждую строку).
-        -- Локально выбирался hashed-вариант за 39 мс, в CI — нет, и шаг висел минутами.
-        where s.report_date = '2026-10-01'
-          and not exists (select 1 from ret where ret.loan_id = s.loan_id)
-    """)[0]
-    rep = psql("""
-        select npl_share, par30_share, par90_share
-        from reporting.v_portfolio_metrics where report_date = '2026-10-01'
-    """)[0]
     out = [
         "| Фактор сопоставимости | Значение |",
         "|---|---:|",
         f"| Кредитов с переходом `written_off` 1 → 0 (01.09 → 01.10) | {cnt} |",
         f"| Их остаток в портфеле на 01.10 | {money(amount)} ₸ ({pct(amount / portfolio)} портфеля) |",
         f"| Из них попадает в NPL | {money(npl_part)} ₸ |",
-        f"| Портфель на 01.10 без них (сопоставимая база) | {money(portfolio - amount)} ₸ |",
+        f"| Портфель на 01.10 без них (сопоставимая база) | {money(comp_p)} ₸ |",
         f"| Валютный остаток, USD: 01.09 → 01.10 | {money(fx[0])} → {money(fx[2])} |",
         f"| Курс USD: 01.09 → 01.10 | {money(fx[1])} → {money(fx[3])} ₸ (+{pct(Decimal(fx[3]) / Decimal(fx[1]) - 1)}) |",
         f"| Курсовой эффект на USD-портфель (переоценка остатка 01.10) | +{money(fx[4])} ₸ |",
         f"| Фактическое изменение USD-портфеля в ₸ | {signed_bn(fx[5])} млрд ₸ |",
-        f"| NPL на 01.10: отчётный → без вернувшихся | {pct(rep[0])} → **{pct(comp[0])}** "
-        f"({pp((Decimal(comp[0]) - Decimal(rep[0])) * 100)}) |",
-        f"| PAR30 на 01.10: отчётный → без вернувшихся | {pct(rep[1])} → {pct(comp[1])} "
-        f"({pp((Decimal(comp[1]) - Decimal(rep[1])) * 100)}) |",
-        f"| PAR90 на 01.10: отчётный → без вернувшихся | {pct(rep[2])} → {pct(comp[2])} "
-        f"({pp((Decimal(comp[2]) - Decimal(rep[2])) * 100)}) |",
+        f"| NPL на 01.10: отчётный → без вернувшихся | {pct(rep[0])} → **{pct(comp_n / comp_p)}** "
+        f"({pp((comp_n / comp_p - Decimal(rep[0])) * 100)}) |",
+        f"| PAR30 на 01.10: отчётный → без вернувшихся | {pct(rep[1])} → {pct(comp_30 / comp_p)} "
+        f"({pp((comp_30 / comp_p - Decimal(rep[1])) * 100)}) |",
+        f"| PAR90 на 01.10: отчётный → без вернувшихся | {pct(rep[2])} → {pct(comp_90 / comp_p)} "
+        f"({pp((comp_90 / comp_p - Decimal(rep[2])) * 100)}) |",
     ]
     return "\n".join(out)
 
@@ -236,18 +253,23 @@ BLOCKS = {
 
 
 def main():
+    import time
     text = open(README, encoding="utf-8").read()
+    timings = []
     for name, fn in BLOCKS.items():
         start, end = f"<!-- AUTO:{name} -->", f"<!-- /AUTO:{name} -->"
         if start not in text or end not in text:
             sys.exit(f"README.md: нет маркеров для блока {name}")
+        t0 = time.monotonic()
         body = fn()
+        timings.append((name, time.monotonic() - t0))
         text = re.sub(
             re.escape(start) + r".*?" + re.escape(end),
             start + "\n" + body + "\n" + end,
             text, flags=re.S)
     open(README, "w", encoding="utf-8").write(text)
     print(f"README.md: обновлено блоков с цифрами — {len(BLOCKS)} (все значения из reporting.*)")
+    print("  время по блокам: " + ", ".join(f"{n} {t:.2f}с" for n, t in timings))
 
 
 if __name__ == "__main__":
